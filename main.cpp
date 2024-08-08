@@ -104,13 +104,15 @@ void runInstruction(Instruction instruction) {
 }
 
 Instruction decodeU12(char* data, int head, int end) {
-//    char *byteAddr = (char*)((intptr_t)data + head * 3 / 2);
     char *byteAddr = (char*)((intptr_t)data + head * 12 / 8);
     uint16_t raw;
+    std::cout << "Byte address: " << std::to_string((uint64_t)byteAddr) << std::endl;
     if (head % 2 == 0) 
-        raw = ((uint16_t)(*byteAddr)     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
-    else
-        raw = ((uint16_t)(*byteAddr >> 4)) | ((((uint16_t)byteAddr[1])         ) << 4);
+        raw = ((uint16_t)(byteAddr[0])     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
+    else {
+        std::cout << "byteAddr[1] = " << std::to_string(byteAddr[1]) << std::endl;
+        raw = ((uint16_t)(byteAddr[0] >> 4)) | (byteAddr[1]                        << 4);
+    }
     std::cout << "Raw: " << std::to_string(raw) << std::endl;
     Instruction toReturn;
     toReturn.opc = (Opcodes)(raw & 0b111);
@@ -128,10 +130,10 @@ char* loadBin(char* fname, std::streamsize& size) {
     }
     size = binFile.tellg();
     binFile.seekg(0, std::ios::beg);
-    char* toReturn = static_cast<char*>(std::aligned_alloc(1, size));
+    char* toReturn = new char[size];
     if (!binFile.read(toReturn, size)) {
         std::cout << "Can't read file.\n";
-        std::free(toReturn);
+        delete[] toReturn;
         exit(1);
     }
     binFile.close();
