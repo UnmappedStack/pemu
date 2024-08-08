@@ -106,7 +106,6 @@ void runInstruction(Instruction instruction) {
 Instruction decodeU12(char* data, int head, int end) {
     char *byteAddr = (char*)((intptr_t)data + head * 12 / 8);
     uint16_t raw;
-    std::cout << "Byte address: " << std::to_string((uint64_t)byteAddr) << std::endl;
     if (head % 2 == 0) 
         raw = ((uint16_t)(byteAddr[0])     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
     else {
