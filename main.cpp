@@ -45,6 +45,11 @@ struct MemoryAddress {
     uint16_t word : 12;
 }__attribute__((packed));
 
+struct LookupPair {
+    Opcodes opc;
+    void (*addr)(Instruction);
+};
+
 // where the state of the machine is stored
 MemoryAddress memory[128][4096] = {0};
 Registers registers = {0};
@@ -82,21 +87,20 @@ void runLDI(Instruction instruction) {
     std::cout << "Loaded immediate value " << std::to_string(memory[0][126].word) << " into memory address: page 0, address 126.\n";
 }
 
+LookupPair lookupTable[] = {
+    {JMP, &runJMP},
+    {LDI, &runLDI},
+    {TAD, &runTAD}  
+};
+
+
 void runInstruction(Instruction instruction) {
-    switch (instruction.opc) {
-        case JMP:
-            runJMP(instruction);
+    if (instruction.opc == LDI) instruction.addr = reverse3bit(instruction.addr);
+    for (int i = 0; i < 3; i++) {
+        if (instruction.opc == lookupTable[i].opc) {
+            (lookupTable[i].addr)(instruction);
             break;
-        case LDI:
-            instruction.addr = reverse3bit(instruction.addr);
-            runLDI(instruction);
-            break;
-        case TAD:
-            runTAD(instruction);
-            break;
-        default:
-            std::cout << "not implemented yet\n";
-            break;
+        }
     }
     printInstruction(instruction);
 }
