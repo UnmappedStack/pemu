@@ -28,11 +28,11 @@ enum Opcodes {
 };
 
 struct Instruction {
-    Opcodes opc : 3;
-    bool I : 1;
-    bool Z : 1;
-    uint8_t addr : 7;
-}__attribute__((packed));
+    Opcodes opc;
+    bool I;
+    bool Z;
+    uint8_t addr;
+};
 
 struct Registers {
     int PC; // program counter
@@ -44,6 +44,21 @@ struct Registers {
 struct MemoryAddress {
     uint16_t word : 12;
 }__attribute__((packed));
+
+MemoryAddress packInstruction(Instruction instruction) {
+    MemoryAddress toReturn;
+    toReturn.word = (instruction.opc & 0b111) | ((instruction.I & 1) << 3) | ((instruction.Z & 1) << 4) | ((instruction.addr & 0b1111111) << 5);
+    return toReturn;
+}
+
+Instruction unpackInstruction(MemoryAddress instruction) {
+    Instruction toReturn;
+    toReturn.opc = (Opcodes)(instruction.word & 0b111);
+    toReturn.I = instruction.word >> 3;
+    toReturn.Z = instruction.word >> 4;
+    toReturn.addr = instruction.word >> 5;
+    return toReturn;
+}
 
 struct LookupPair {
     Opcodes opc;
@@ -102,7 +117,6 @@ LookupPair lookupTable[] = {
     {OPR, &runNotImplemented},
 };
 
-
 void runInstruction(Instruction instruction) {
     if (instruction.opc == LDI) instruction.addr = reverse3bit(instruction.addr);
     int idx = instruction.opc;
@@ -110,18 +124,13 @@ void runInstruction(Instruction instruction) {
     printInstruction(instruction);
 }
 
-Instruction decodeU12(char* data, int head, int end) {
+MemoryAddress decodeU12(char* data, int head, int end) {
     char *byteAddr = (char*)((intptr_t)data + head * 12 / 8);
-    uint16_t raw;
+    MemoryAddress toReturn;
     if (head % 2 == 0) 
-        raw = ((uint16_t)(byteAddr[0])     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
+        toReturn.word = ((uint16_t)(byteAddr[0])     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
     else
-        raw = ((uint16_t)(byteAddr[0] >> 4)) | (byteAddr[1]                        << 4);
-    Instruction toReturn;
-    toReturn.opc = (Opcodes)(raw & 0b111);
-    toReturn.I = (raw >> 3) & 1;
-    toReturn.Z = (raw >> 4) & 1;
-    toReturn.addr = (raw >> 5) & 0b1111111;
+        toReturn.word = ((uint16_t)(byteAddr[0] >> 4)) | (byteAddr[1]                        << 4);
     return toReturn;
 }
 
@@ -154,14 +163,14 @@ int main(int argc, char** argv) {
     char *program = loadBin(argv[1], binFileSize);
     int programLength = (binFileSize * 8) / 12;
     // load the instructions into memory at address 0x0
-    Instruction *programLoadAddr = (Instruction*)&memory;
+    MemoryAddress *programLoadAddr = (MemoryAddress*)(&memory);
     for (int i = 0; i < programLength; i++)
-        programLoadAddr[i] = (Instruction)decodeU12(program, i, (int)binFileSize);
+        programLoadAddr[i] = decodeU12(program, i, (int)binFileSize);
     while (1) {
         int page = (registers.PC >> 7) & 31;
         int address = registers.PC & 127;
-        runInstruction(*(Instruction*)(&(memory[page][address])));
-        if (((Instruction*)(&memory[page][address]))->opc == JMP) continue;
+        runInstruction(unpackInstruction(memory[page][address]));
+        if (unpackInstruction(memory[page][address]).opc == JMP) continue;
         if ((registers.PC & 127) == 127)
             registers.PC = (((registers.PC >> 7) && 31) + 1) << 7;
         else
