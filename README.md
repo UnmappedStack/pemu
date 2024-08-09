@@ -6,13 +6,12 @@ This project was the result of my initial interest in the PDP-8, how it could fu
 ## Quickstart
 Compile with:
 ```
-g++ main.cpp -o pemu
+make
 ```
 then run a binary with:
 ```
 ./pemu [binary file name]
 ```
-You may notice that everything is currently in one file. That's because the project is still in *very very very* early stages, and has been in development for only a few days at this point.
 
 ## Programs
 You can find some programs in the `programs` directory, written in PDP-8 assembly, which you can compile with [this assembler](https://github.com/Dcraftbg/Pdp8).
