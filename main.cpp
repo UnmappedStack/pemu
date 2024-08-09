@@ -87,21 +87,26 @@ void runLDI(Instruction instruction) {
     std::cout << "Loaded immediate value " << std::to_string(memory[0][126].word) << " into memory address: page 0, address 126.\n";
 }
 
+void runNotImplemented(Instruction instruction) {
+    std::cout << "Instruction opcode not implemented yet.\n";
+}
+
 LookupPair lookupTable[] = {
+    {AND, &runNotImplemented},
+    {TAD, &runTAD},
+    {ISZ, &runNotImplemented},
+    {DCA, &runNotImplemented},
+    {JMS, &runNotImplemented},
     {JMP, &runJMP},
     {LDI, &runLDI},
-    {TAD, &runTAD}  
+    {OPR, &runNotImplemented},
 };
 
 
 void runInstruction(Instruction instruction) {
     if (instruction.opc == LDI) instruction.addr = reverse3bit(instruction.addr);
-    for (int i = 0; i < 3; i++) {
-        if (instruction.opc == lookupTable[i].opc) {
-            (lookupTable[i].addr)(instruction);
-            break;
-        }
-    }
+    int idx = instruction.opc;
+    (lookupTable[idx].addr)(instruction);
     printInstruction(instruction);
 }
 
@@ -152,7 +157,7 @@ int main(int argc, char** argv) {
     Instruction *programLoadAddr = (Instruction*)&memory;
     for (int i = 0; i < programLength; i++)
         programLoadAddr[i] = (Instruction)decodeU12(program, i, (int)binFileSize);
-    for (int n = 0; n < programLength; n++) {
+    while (1) {
         int page = (registers.PC >> 7) & 31;
         int address = registers.PC & 127;
         runInstruction(*(Instruction*)(&(memory[page][address])));
