@@ -49,14 +49,12 @@ struct MemoryAddress {
 MemoryAddress memory[128][4096] = {0};
 Registers registers = {0};
 
-uint8_t reverseBits(uint8_t x) {
-    return (((x >> 0) & 1) << 6) | \
-           (((x >> 1) & 1) << 5) | \
-           (((x >> 2) & 1) << 4) | \
-           (((x >> 3) & 1) << 3) | \
-           (((x >> 4) & 1) << 2) | \
-           (((x >> 5) & 1) << 1) | \
-           (((x >> 6) & 1) << 0);
+uint8_t reverse3bit(uint8_t original) {
+    uint8_t toReturn;
+    toReturn |= (0b100000 & original) >> 4;
+    toReturn |= (0b001000 & original) >> 4;
+    toReturn |= (0b010000 & original) >> 4;
+    return toReturn;
 }
 
 // and the stuff that does stuff
@@ -81,7 +79,7 @@ void runTAD(Instruction instruction) {
 
 void runLDI(Instruction instruction) {
     memory[0][126].word = instruction.addr;
-    std::cout << "Loaded immediate value " << registers.AC << " into memory address: page 0, address 126.\n";
+    std::cout << "Loaded immediate value " << std::to_string(memory[0][126].word) << " into memory address: page 0, address 126.\n";
 }
 
 void runInstruction(Instruction instruction) {
@@ -90,7 +88,7 @@ void runInstruction(Instruction instruction) {
             runJMP(instruction);
             break;
         case LDI:
-            //instruction.addr = reverseBits((uint8_t)instruction.addr);
+            instruction.addr = reverse3bit(instruction.addr);
             runLDI(instruction);
             break;
         case TAD:
@@ -108,11 +106,8 @@ Instruction decodeU12(char* data, int head, int end) {
     uint16_t raw;
     if (head % 2 == 0) 
         raw = ((uint16_t)(byteAddr[0])     ) | ((((uint16_t)byteAddr[1]) & 0b1111) << 8);
-    else {
-        std::cout << "byteAddr[1] = " << std::to_string(byteAddr[1]) << std::endl;
+    else
         raw = ((uint16_t)(byteAddr[0] >> 4)) | (byteAddr[1]                        << 4);
-    }
-    std::cout << "Raw: " << std::to_string(raw) << std::endl;
     Instruction toReturn;
     toReturn.opc = (Opcodes)(raw & 0b111);
     toReturn.I = (raw >> 3) & 1;
@@ -149,13 +144,10 @@ int main(int argc, char** argv) {
     std::streamsize binFileSize = 0;
     char *program = loadBin(argv[1], binFileSize);
     int programLength = (binFileSize * 8) / 12;
-    std::cout << "Running program with " << std::to_string(programLength) << " instructions.\n";
     // load the instructions into memory at address 0x0
     Instruction *programLoadAddr = (Instruction*)&memory;
     for (int i = 0; i < programLength; i++)
         programLoadAddr[i] = (Instruction)decodeU12(program, i, (int)binFileSize);
-    std::cout << "Memory size: " << std::to_string(sizeof(memory[0])) << std::endl;
-    std::cout << "Instruction 2: " << std::to_string((*(uint16_t*)&program[1]) & 4095) << std::endl;
     for (int n = 0; n < programLength; n++) {
         int page = (registers.PC >> 7) & 31;
         int address = registers.PC & 127;

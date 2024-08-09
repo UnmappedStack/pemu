@@ -1,5 +1,3 @@
-JMP $1 ; using IOT as LDT because of my shitty emulator. Loads immediate value 1 at page 0, address 126
-JMP $2
-JMP $3
-;;TAD Z $127 ; Add value at 126 (set to 1) to the IC register
-;;JMP Z $1 ; Jump to the previous instruction
+IOT $0 $1 ; using IOT as LDT because of my shitty emulator. Loads immediate value 1 at page 0, address 126
+TAD Z $126 ; Add value at 126 (set to 1) to the IC register
+JMP Z $1 ; Jump to the previous instruction
