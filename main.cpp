@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         runInstruction(unpackInstruction(memory[page][address]));
         if (unpackInstruction(memory[page][address]).opc == JMP) continue;
         if ((registers.PC & 127) == 127)
-            registers.PC = (((registers.PC >> 7) && 31) + 1) << 7;
+            registers.PC = (((registers.PC >> 7) & 31) + 1) << 7;
         else
             registers.PC++;
     }
